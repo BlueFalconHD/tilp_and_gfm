@@ -30,14 +30,17 @@ handle_one_module() {
   cd -
 }
 
+set -x
+
 if [ "x$NOAUTORECONF" = "x" -a "x$NO_AUTORECONF" = "x" ]; then
 echo "=== AUTORECONF ==="
 ./run_autoreconf.sh || exit 1
 fi
 
+if [ "x$NOUPDATEPOT" = "x" -a "x$NO_UPDATEPOT" = "x" ]; then
 echo "=== UPDATEPOT ==="
 ./run_updatepot.sh || exit 1
-
+fi
 
 echo "=== tfdocgen ==="
 handle_one_module tfdocgen || exit 1
