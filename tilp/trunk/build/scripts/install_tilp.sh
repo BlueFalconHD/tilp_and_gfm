@@ -242,6 +242,7 @@ fi
 
 # First of all, platform-specific adjustments.
 UNAME=`uname`
+
 # On MacOS X 10.11, locally compiled programs are _really_ supposed to be installed to /usr/local.
 if [ "x$PREFIX" = "x/usr" ]; then
     if [ "x$UNAME" = "xDarwin" ]; then
@@ -249,13 +250,46 @@ if [ "x$PREFIX" = "x/usr" ]; then
         PREFIX="/usr/local"
     fi
 fi
+
+homebrew_get_prefix() {
+    # Get the prefix of a Homebrew package
+    local package="$1"
+
+    # Check if Homebrew is installed
+    if ! command -v brew &>/dev/null; then
+        echo "Homebrew is not installed. Please install it first."
+        return 1
+    fi
+
+    # If the package name isn't provided, get the base homebrew prefix
+    if [ -z "$package" ]; then
+        echo "$(brew --prefix)"
+        return 0
+    fi
+
+    # Check if the package is installed
+    if brew list "$package" &>/dev/null; then
+        # Get the prefix of the package
+        local prefix=$(brew --prefix "$package")
+        echo "$prefix"
+    else
+        echo "Required formula \'$package\' is not installed. Please install it using Homebrew."
+        return 1
+    fi
+}
+
 # On MacOS X 10.11+, need to fiddle with PKG_CONFIG_PATH.
 if [ "x$UNAME" = "xDarwin" ]; then
     echo "Modifying PKG_CONFIG_PATH on MacOS X"
+
+    PREFIX_PKGCONFIG_ROOT="$(homebrew_get_prefix)/lib/pkgconfig"
+    PREFIX_LIBARCHIVE="$(homebrew_get_prefix libarchive)/lib/pkgconfig"
+    PREFIX_LIBFFI="$(homebrew_get_prefix libffi)/lib/pkgconfig"
+
     if [ "x$PKG_CONFIG_PATH" = "x" ]; then
-        PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/libarchive/lib/pkgconfig:/opt/homebrew/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
+        PKG_CONFIG_PATH="$PREFIX_PKGCONFIG_ROOT:$PREFIX_LIBARCHIVE:$PREFIX_LIBFFI"
     else
-        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/libarchive/lib/pkgconfig:/opt/homebrew/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
+        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$PREFIX_PKGCONFIG_ROOT:$PREFIX_LIBARCHIVE:$PREFIX_LIBFFI"
     fi
     export PKG_CONFIG_PATH
 fi
