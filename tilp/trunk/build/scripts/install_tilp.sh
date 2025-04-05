@@ -243,23 +243,9 @@ fi
 # First of all, platform-specific adjustments.
 UNAME=`uname`
 
-# On MacOS X 10.11, locally compiled programs are _really_ supposed to be installed to /usr/local.
-if [ "x$PREFIX" = "x/usr" ]; then
-    if [ "x$UNAME" = "xDarwin" ]; then
-        echo "Modern MacOS X versions don't like programs installing to /usr, using /usr/local instead"
-        PREFIX="/usr/local"
-    fi
-fi
-
 homebrew_get_prefix() {
     # Get the prefix of a Homebrew package
     local package="$1"
-
-    # Check if Homebrew is installed
-    if ! command -v brew &>/dev/null; then
-        echo "Homebrew is not installed. Please install it first."
-        return 1
-    fi
 
     # If the package name isn't provided, get the base homebrew prefix
     if [ -z "$package" ]; then
@@ -278,11 +264,92 @@ homebrew_get_prefix() {
     fi
 }
 
-# On MacOS X 10.11+, need to fiddle with PKG_CONFIG_PATH.
+homebrew_check_for_package() {
+    # Check if a Homebrew package is installed
+    local package="$1"
+    local missing_message="$2"
+
+    # if a package has ever been installed since last brew cleanup, it will be in the cellar
+    # temporarily commented out because Homebrew complains about running as root
+    # if [ -z "$(brew --cellar "$package" 2>/dev/null)" ]; then
+    #     echo -e "Required formula '$package' is not installed."
+    #     if [ -n "$missing_message" ]; then
+    #         echo -e "$missing_message"
+    #     fi
+    #     return 1
+    # fi
+
+    # if a package's prefix directory doesn't exist, or brew --prefix returns an error, it's not installed
+    if [ ! -d "$(brew --prefix "$package")" ]; then
+        echo -e "Required formula '$package' is not installed."
+        if [ -n "$missing_message" ]; then
+            echo -e "$missing_message"
+        fi
+        return 1
+    fi
+}
+
+
 if [ "x$UNAME" = "xDarwin" ]; then
+
+    # Check for Homebrew
+    if [ ! command -v brew &>/dev/null ]; then
+        echo "Homebrew is not installed. Please install it from https://brew.sh/"
+        exit 1
+    fi
+
+    # On MacOS X 10.11, locally compiled programs are _really_ supposed to be installed to /usr/local.
+    if [ "x$PREFIX" = "x/usr" ]; then
+        echo "Modern MacOS X versions don't like programs installing to /usr, using /usr/local instead"
+        PREFIX="/usr/local"
+    fi
+
+    # Check for Homebrew packages
+    echo "Checking for Homebrew packages..."
+
+    MISSING_DEPS=0
+    homebrew_check_for_package "gettext" "Please run \`brew install gettext\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "libarchive" "Please run \`brew install libarchive\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "autoconf" "Please run \`brew install autoconf\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "automake" "Please run \`brew install automake\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "pkgconfig" "Please run \`brew install pkgconfig\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "libtool" "Please run \`brew install libtool\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "glib" "Please run \`brew install glib\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "lzlib" "Please run \`brew install lzlib\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "libusb" "Please run \`brew install libusb\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "gtk+" "Please run \`brew install gtk+\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "sdl" "Please run \`brew install sdl\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "bison" "Please run \`brew install bison\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "flex" "Please run \`brew install flex\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "texinfo" "Please run \`brew install texinfo\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "libiconv" "Please run \`brew install libiconv\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "intltool" "Please run \`brew install intltool\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "perl-xml-parser" "Please run \`brew install perl-xml-parser\` to install it." || MISSING_DEPS=1
+    homebrew_check_for_package "libglade" "To install libglade, run these commands:\nmkdir -p ~/homebrew-formula && cd ~/homebrew-formula\ncurl https://github.com/Homebrew/homebrew-core/raw/828d5d8b3463687d898f64a20390af134c7e2ba5/Formula/libglade.rb > libglade.rb\nbrew install libglade.rb" || MISSING_DEPS=1
+
+    if [ "$MISSING_DEPS" -eq 1 ]; then
+        echo "Some required dependencies are missing. Please install them and rerun the script."
+        exit 1
+    fi
+
+    HB_PREFIX="$(homebrew_get_prefix)"
+
+    # Check whether gettext is linked to homebrews root prefix
+    if [ -d "$HB_PREFIX/lib" ]; then
+        # check for libgettextlib.dylib
+        if [ ! -f "$HB_PREFIX/lib/libgettextlib.dylib" ]; then
+            echo "gettext is not linked to $HB_PREFIX, please run brew link --force gettext"
+            exit 1
+        fi
+    else
+        echo "No $HB_PREFIX/lib directory found, please run brew link --force gettext"
+        exit 1
+    fi
+
     echo "Modifying PKG_CONFIG_PATH on MacOS X"
 
-    PREFIX_PKGCONFIG_ROOT="$(homebrew_get_prefix)/lib/pkgconfig"
+    # On MacOS X 10.11+, need to fiddle with PKG_CONFIG_PATH.
+    PREFIX_PKGCONFIG_ROOT="$HB_PREFIX/lib/pkgconfig"
     PREFIX_LIBARCHIVE="$(homebrew_get_prefix libarchive)/lib/pkgconfig"
     PREFIX_LIBFFI="$(homebrew_get_prefix libffi)/lib/pkgconfig"
 
@@ -293,6 +360,7 @@ if [ "x$UNAME" = "xDarwin" ]; then
     fi
     export PKG_CONFIG_PATH
 fi
+
 LIBDIR="$PREFIX/lib"
 # Some 64-bit Linux distros use /lib64 or /usr/lib64.
 if [ "x$UNAME" = "xLinux" ]; then
