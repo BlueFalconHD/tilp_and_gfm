@@ -224,7 +224,11 @@ listdeps() {
     echo "Slackware 14.2:"
     echo -e "    slackpkg install git gcc binutils make pkgconfig autoconf automake libtool glib2 zlib libusb gtk+2 libglade gettext bison flex groff texinfo xdg-utils libarchive intltool xz ca-certificates libmpc glibc cyrus-sasl curl perl m4 less kernel-headers pkg-config guile gc libffi libcroco libxml2 lzo nettle acl eudev pango cairo pixman fontconfig freetype libpng harfbuzz expat mesa libdrm libX11 xproto kbproto libxcb libpthread-stubs libXau libXdmcp libXext xextproto libXdamage damageproto libXfixes fixesproto libXxf86vm xf86vidmodeproto libXrender renderproto gdk-pixbuf2 atk libxshmfence libXinerama libXi libXrandr libXcursor libXcomposite\n"
     echo "MacOS X:"
-    echo -e "    brew install gettext libarchive autoconf automake pkgconfig libtool glib lzlib libusb gtk+ libglade sdl bison flex texinfo libiconv intltool"
+    echo -e "    To install libglade2, you need to clone an old formula since it was removed from Homebrew:\n"
+    echo -e "    mkdir -p ~/homebrew-formula && cd ~/homebrew-formula\n"
+    echo -e "    curl  https://github.com/Homebrew/homebrew-core/raw/828d5d8b3463687d898f64a20390af134c7e2ba5/Formula/libglade.rb > libglade.rb"
+    echo -e "    brew install libglade.rb"
+    echo -e "    brew install gettext libarchive autoconf automake pkgconfig libtool glib lzlib libusb gtk+ sdl bison flex texinfo libiconv intltool perl-xml-parser"
     echo -e "    brew link --force gettext   (you can use 'brew unlink' later. Also, adjust PKG_CONFIG_PATH if needed/possible)."
 }
 
@@ -249,9 +253,9 @@ fi
 if [ "x$UNAME" = "xDarwin" ]; then
     echo "Modifying PKG_CONFIG_PATH on MacOS X"
     if [ "x$PKG_CONFIG_PATH" = "x" ]; then
-        PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:$PREFIX/lib/pkgconfig:/usr/local/opt/libarchive/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
+        PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/libarchive/lib/pkgconfig:/opt/homebrew/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
     else
-        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:$PREFIX/lib/pkgconfig:/usr/local/opt/libarchive/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
+        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/libarchive/lib/pkgconfig:/opt/homebrew/opt/libffi/lib/pkgconfig:/opt/X11/lib/pkgconfig"
     fi
     export PKG_CONFIG_PATH
 fi
